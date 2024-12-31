@@ -66,6 +66,10 @@ def send_xrp(source_seed, destination_address, amount):
 def home():
     return render_template("home.html", wallet_details=wallet_details, global_temp_address=global_temp_address, global_temp_seed=global_temp_seed)
 
+@app.route("/merchant")
+def merchant():
+    return render_template("merchant.html")
+
 @app.route('/create_wallet', methods=['GET'])
 def create_wallet_route():
     global wallet_details, global_temp_address, global_temp_seed
@@ -79,43 +83,43 @@ def create_wallet_route():
 def send_xrp_route():
     global wallet_details, global_temp_address, global_temp_seed
 
-    try:
-        source_seed = request.form["source_seed"]
-        destination_address = request.form["destination_address"]
-        amount = float(request.form["amount"])
+    #try:
+    source_seed = global_temp_seed
+    destination_address = request.form["destination_address"]
+    amount = float(request.form["amount"])
 
-        # Perform the transaction
-        response = send_xrp(source_seed, destination_address, amount)
-        print("Payment Succeeded:", response.result)
+    # Perform the transaction
+    response = send_xrp(source_seed, destination_address, amount)
+    print("Payment Succeeded:", response.result)
 
-        # Fetch updated balance for the wallet
-        testnet_client = xrpl.clients.JsonRpcClient("https://s.altnet.rippletest.net:51234/")
-        account_info = AccountInfo(
-            account=wallet_details["address"],
-            ledger_index="validated",
-            strict=True
-        )
-        account_response = testnet_client.request(account_info)
-        wallet_details["balance"] = float(account_response.result["account_data"]["Balance"]) / 1_000_000  # Update balance in XRP
+    # Fetch updated balance for the wallet
+    testnet_client = xrpl.clients.JsonRpcClient("https://s.altnet.rippletest.net:51234/")
+    account_info = AccountInfo(
+        account=wallet_details["address"],
+        ledger_index="validated",
+        strict=True
+    )
+    account_response = testnet_client.request(account_info)
+    wallet_details["balance"] = float(account_response.result["account_data"]["Balance"]) / 1_000_000  # Update balance in XRP
 
-        # Transaction time
-        ripple_epoch = datetime(2000, 1, 1, 0, 0, 0)
-        txn_time_seconds = response.result["tx_json"].get("date", 0)
-        txn_time = ripple_epoch + timedelta(seconds=txn_time_seconds)
+    # Transaction time
+    ripple_epoch = datetime(2000, 1, 1, 0, 0, 0)
+    txn_time_seconds = response.result["tx_json"].get("date", 0)
+    txn_time = ripple_epoch + timedelta(seconds=txn_time_seconds)
 
-        # Success message
-        message = (
-            f"Transaction Complete! Transaction Amount: {amount} XRP, "
-            f"Fee: {float(response.result['tx_json']['Fee']) / 1_000_000} XRP, "
-            f"Transaction ID: {response.result['hash']}, "
-            f"Transaction Time: {txn_time.strftime('%Y-%m-%d %H:%M:%S UTC')}"
-        )
-        print("----- Banner Message: ", message)
-        return render_template("home.html", wallet_details=wallet_details, global_temp_address=global_temp_address, global_temp_seed=global_temp_seed, message=message)
+    # Success message
+    message = (
+        f"Transaction Complete! Transaction Amount: {amount} XRP, "
+        f"Fee: {float(response.result['tx_json']['Fee']) / 1_000_000} XRP, "
+        f"Transaction ID: {response.result['hash']}, "
+        f"Transaction Time: {txn_time.strftime('%Y-%m-%d %H:%M:%S UTC')}"
+    )
+    print("----- Banner Message: ", message)
+    return render_template("merchant.html", wallet_details=wallet_details, global_temp_address=global_temp_address, global_temp_seed=global_temp_seed, message=message)
 
-    except Exception as e:
-        print("Error:", str(e))
-        return render_template("home.html", wallet_details=wallet_details, error=str(e))
+    # except Exception as e:
+    #     print("Error:", str(e))
+    #     return render_template("merchant.html", wallet_details=wallet_details, error=str(e))
 
 
 
