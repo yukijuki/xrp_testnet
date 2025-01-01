@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>XRP Testnet Wallet</title>
+    <title>Merchant Payment Screen</title>
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
@@ -54,8 +54,18 @@
     <div class="container-fluid py-3">
         <!-- Alerts -->
         {% if message %}
-        <div class="alert alert-success" role="alert">
-            {{ message }}
+        <div class="toast-container position-fixed top-0 end-0 p-3">
+            <div class="toast show" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="toast-header">
+                    <i class="bi bi-inbox-fill me-1"></i><strong class="me-auto text-success">Notification</strong>
+                    <small>Just now</small>
+                    <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+                <div class="toast-body">
+                    {{ message }}
+                    <p> Check the txn on <a href="https://testnet.xrpl.org/transactions/{{ transaction.id }}" target="_blank">Ripple Testnet</a></p>
+                </div>
+            </div>
         </div>
         {% endif %}
         {% if error %}
@@ -67,21 +77,31 @@
         <!-- Send XRP Section -->
         <div class="card mb-4 shadow-sm">
             <div class="card-body">
-                <!-- Top Merchant Banner -->
-                <div class="d-flex align-items-center mb-4">
-                    <i class="bi bi-shop fs-1 me-3 text-primary"></i>
-                    <h1 class="h3 mb-0">Yuki Shop Merchant</h1>
-                </div>
 
                 <form action="/send_xrp" method="post">
                     <div class="row">
                         <!-- Left Column: Merchant Destination Address -->
+                        <!-- Top Merchant Banner -->
                         <div class="col-md-6">
+                            <div class="d-flex align-items-center mb-4">
+                                <i class="bi bi-shop fs-1 me-3 text-primary"></i>
+                                <h1 class="h3 mb-0">Test Shop 1</h1>
+                            </div>
                             <div class="mb-3">
                                 <label for="destination_address" class="form-label">Merchant Destination Address</label>
                                 <input type="text" id="destination_address" name="destination_address" class="form-control"
                                        maxlength="35" pattern="r[1-9A-HJ-NP-Za-km-z]{25,}" 
                                        value="rGaYogeK39QDT9vvkY8vTgr8m3j9foNk65" required>
+                            </div>
+                            <div class="row">
+                                <div class="col-4">
+                                    <h5>Payment Method</h5>
+                                    <div class="list-group" id="list-tab" role="tablist">
+                                        <a class="list-group-item list-group-item-action active" id="list-home-list" data-bs-toggle="list" href="#list-home" role="tab" aria-controls="list-home">1. Lump-sum Payment</a>
+                                        <a class="list-group-item list-group-item-action" id="list-profile-list" data-bs-toggle="list" href="#list-profile" role="tab" aria-controls="list-profile">2. Installment Payment</a>
+                                        <a class="list-group-item list-group-item-action" id="list-messages-list" data-bs-toggle="list" href="#list-messages" role="tab" aria-controls="list-messages">3. Revolving Payment</a>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -126,7 +146,7 @@
                             <th>Amount (JPY)</th>
                             <th>Amount (XRP)</th>
                             <th>Fee (XRP)</th>
-                            <th>Timestamp</th>
+                            <th>Payment Datetime</th>
                             <th>Details</th>
                         </tr>
                     </thead>
@@ -137,11 +157,13 @@
                             <td class="text-truncate" style="max-width: 150px;" title="{{ tx.id }}">{{ tx.id }}</td>
                             <td>{{ tx.recipient }}</td>
                             <td>¥{{ tx.jpyamount }}</td>
-                            <td>{{ tx.amount }}</td>
+                            <td>{{ tx.amount }} XRP</td>
                             <td>{{ tx.fee }}</td>
                             <td>{{ tx.timestamp }}</td>
                             <td>
-                                <i class="bi bi-info-circle-fill view-icon" onclick="showDetails('{{ loop.index }}')"></i>
+                                <button type="button" class="btn btn-primary d-flex align-items-center" onclick="showDetails('{{ loop.index }}')">
+                                    <i class="bi bi-clipboard-minus me-2"></i> See more
+                                </button>
                             </td>
                         </tr>
                         {% endfor %}

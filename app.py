@@ -6,6 +6,9 @@ from xrpl.models.transactions import Payment
 from xrpl.transaction import sign, autofill, submit_and_wait
 from datetime import datetime, timedelta
 import json  # For JSON serialization
+import pytz
+import requests
+
 
 
 app = Flask(__name__)
@@ -14,10 +17,38 @@ global_temp_address = ""
 global_temp_seed = ""
 global_transactions = []  # Global variable to store transaction history
 
-xrp_jpy = 330
-
 # Store wallet details for display
 wallet_details = {}
+
+def get_xrp_price_in_jpy():
+    url = 'https://api.coingecko.com/api/v3/simple/price?ids=ripple&vs_currencies=jpy'
+    response = requests.get(url)
+    data = response.json()
+
+    if 'ripple' in data and 'jpy' in data['ripple']:
+        return data['ripple']['jpy']
+    else:
+        print("Error retrieving data.")
+        return None
+
+xrp_jpy = get_xrp_price_in_jpy()
+
+
+#Time conversation
+def convert_utc_to_japan(utc_time):
+    # Convert UTC time to datetime object
+    utc_time_obj = datetime.strptime(utc_time, "%Y-%m-%d %H:%M:%S %Z")
+
+    # Define Japan timezone
+    japan_timezone = pytz.timezone('Asia/Tokyo')
+
+    # Convert UTC time to Japan time
+    japan_time = utc_time_obj.replace(tzinfo=pytz.utc).astimezone(japan_timezone)
+
+    # Format the Japan time
+    japan_time_str = japan_time.strftime("%Y-%m-%d %H:%M:%S")
+    
+    return japan_time_str
 
 # Helper function to generate a new XRP wallet on the testnet
 def create_wallet():
@@ -38,6 +69,7 @@ def create_wallet():
         "address": wallet.classic_address,
         "seed": wallet.seed,
         "balance": balance,
+        "xrp": xrp_jpy,
     }
 
 # Helper function to send XRP from one wallet to another
@@ -113,14 +145,18 @@ def send_xrp_route():
         txn_time_seconds = response.result["tx_json"].get("date", 0)
         txn_time = ripple_epoch + timedelta(seconds=txn_time_seconds)
 
+        #Transaction amount
+        txn_jpyamount = round(amount*xrp_jpy,1)
+        txn_xrpamount = round(amount,3)
+
         # Add transaction to global transaction history
         transaction = {
             "id": response.result["hash"],
             "recipient": destination_address,
-            "jpyamount": round(amount*xrp_jpy,1),
-            "amount": round(amount,3),
+            "jpyamount": txn_jpyamount,
+            "amount": txn_xrpamount,
             "fee": float(response.result['tx_json']['Fee']) / 1_000_000,
-            "timestamp": txn_time.strftime('%Y-%m-%d %H:%M:%S UTC'),
+            "timestamp": convert_utc_to_japan(txn_time.strftime('%Y-%m-%d %H:%M:%S UTC')),
             "details": response.result,  # Store the entire response JSON
         }
         global_transactions.append(transaction)
@@ -130,10 +166,7 @@ def send_xrp_route():
 
         # Success message
         message = (
-            f"Transaction Complete! Transaction Amount: {amount} XRP, "
-            f"Fee: {float(response.result['tx_json']['Fee']) / 1_000_000} XRP, "
-            f"Transaction ID: {response.result['hash']}, "
-            f"Transaction Time: {txn_time.strftime('%Y-%m-%d %H:%M:%S UTC')}"
+            f"Transaction Complete! \n\n  Transaction Amount: ¥{txn_jpyamount} \n({txn_xrpamount}) XRP"
         )
         print("----- Banner Message: ", message)
         return render_template("merchant.html", 
@@ -142,7 +175,8 @@ def send_xrp_route():
                                global_temp_seed=global_temp_seed, 
                                message=message, 
                                transactions=global_transactions, 
-                               transactions_details_json=transactions_details_json)
+                               transactions_details_json=transactions_details_json,
+                               transaction=transaction)
 
     except Exception as e:
         print("Error:", str(e))
