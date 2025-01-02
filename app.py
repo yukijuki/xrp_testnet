@@ -68,7 +68,7 @@ def create_wallet():
     return {
         "address": wallet.classic_address,
         "seed": wallet.seed,
-        "balance": balance,
+        "balance": round(balance,3),
         "xrp": xrp_jpy,
     }
 
@@ -84,11 +84,11 @@ def send_xrp(source_seed, destination_address, amount):
         destination=destination_address,
         amount=xrpl.utils.xrp_to_drops(amount),
     )
-    print("----- Payment: ", payment)
+    #print("----- Payment: ", payment)
 
     # Autofill the transaction to fill required fields
     autofilled_tx = autofill(payment, testnet_client)
-    print("----- autofilled_tx: ", autofilled_tx)
+    #print("----- autofilled_tx: ", autofilled_tx)
 
     # Sign the transaction with the wallet's private key
     signed_tx = sign(autofilled_tx, source_wallet)
@@ -128,7 +128,7 @@ def send_xrp_route():
 
         # Perform the transaction
         response = send_xrp(source_seed, destination_address, amount)
-        print("Payment Succeeded:", response.result)
+        print("Payment Succeeded:", response.result["hash"])
 
         # Fetch updated balance for the wallet
         testnet_client = xrpl.clients.JsonRpcClient("https://s.altnet.rippletest.net:51234/")
@@ -138,7 +138,7 @@ def send_xrp_route():
             strict=True
         )
         account_response = testnet_client.request(account_info)
-        wallet_details["balance"] = float(account_response.result["account_data"]["Balance"]) / 1_000_000  # Update balance in XRP
+        wallet_details["balance"] = round(float(account_response.result["account_data"]["Balance"]) / 1_000_000,3)  # Update balance in XRP
 
         # Transaction time
         ripple_epoch = datetime(2000, 1, 1, 0, 0, 0)
